@@ -207,6 +207,9 @@ static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, 
 			dstp_b[i] = rgb.at(3 * i + 2);
 		}
 
+		VSMap *dstProps = vsapi->getFramePropsRW(dst);
+		vsapi->propSetFloat(dstProps, "_Diff", diff_value, paReplace);
+
 		vsapi->freeFrame(src1);
 		vsapi->freeFrame(src2);
 		return dst;
