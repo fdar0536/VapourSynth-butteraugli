@@ -12,7 +12,7 @@ Butteraugli.butteraugli(clip clipa, clip clipb)
 ```
 
 - Both clipa and clipb MUST be in RGB24 format.
-- It returns a clip contains differences between two input clips.
+- It returns a clip contains differences between two input clips, and stores diffvalue in the frame properties named "_Diff".
 
 ## Example
 
