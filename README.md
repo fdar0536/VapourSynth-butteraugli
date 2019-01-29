@@ -1,4 +1,4 @@
-# vapoursynth-butteraugli
+# VapourSynth-butteraugli
 
 ## Introduction
 
