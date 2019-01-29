@@ -20,22 +20,22 @@ using namespace std;
 using namespace butteraugli;
 
 static void ScoreToRgb(double score, double good_threshold,
-	double bad_threshold, uint8_t rgb[3])
+	double bad_threshold, uint8_t &r, uint8_t &g, uint8_t &b)
 {
 	double heatmap[12][3] =
 	{
-	  { 0, 0, 0 },
-	  { 0, 0, 1 },
-	  { 0, 1, 1 },
-	  { 0, 1, 0 }, // Good level
-	  { 1, 1, 0 },
-	  { 1, 0, 0 }, // Bad level
-	  { 1, 0, 1 },
-	  { 0.5, 0.5, 1.0 },
-	  { 1.0, 0.5, 0.5 },  // Pastel colors for the very bad quality range.
-	  { 1.0, 1.0, 0.5 },
-	  { 1, 1, 1, },
-	  { 1, 1, 1, },
+		{ 0, 0, 0 },
+		{ 0, 0, 1 },
+		{ 0, 1, 1 },
+		{ 0, 1, 0 }, // Good level
+		{ 1, 1, 0 },
+		{ 1, 0, 0 }, // Bad level
+		{ 1, 0, 1 },
+		{ 0.5, 0.5, 1.0 },
+		{ 1.0, 0.5, 0.5 },  // Pastel colors for the very bad quality range.
+		{ 1.0, 1.0, 0.5 },
+		{ 1, 1, 1, },
+		{ 1, 1, 1, },
 	};
 
 	if (score < good_threshold)
@@ -61,28 +61,37 @@ static void ScoreToRgb(double score, double good_threshold,
 	int ix = static_cast<int>(score);
 	
 	double mix = score - ix;
+	double v;
+
+	//r
+	v = mix * heatmap[ix + 1][0] + (1 - mix) * heatmap[ix][0];
+	r = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
 	
-	for (int i = 0; i < 3; ++i)
-	{
-		double v = mix * heatmap[ix + 1][i] + (1 - mix) * heatmap[ix][i];
-		rgb[i] = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
-	}
+	//g
+	v = mix * heatmap[ix + 1][1] + (1 - mix) * heatmap[ix][1];
+	g = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
+
+	//b
+	v = mix * heatmap[ix + 1][2] + (1 - mix) * heatmap[ix][2];
+	b = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
 }
 
 void CreateHeatMapImage(const ImageF& distmap, double good_threshold,
 	double bad_threshold, size_t xsize, size_t ysize,
-	std::vector<uint8_t>* heatmap)
+	uint8_t *dst_r, uint8_t *dst_g, uint8_t *dst_b, int stride)
 {
-	heatmap->resize(3 * xsize * ysize);
 	for (size_t y = 0; y < ysize; ++y)
 	{
 		for (size_t x = 0; x < xsize; ++x)
 		{
 			int px = xsize * y + x;
 			double d = distmap.Row(y)[x];
-			uint8_t* rgb = &(*heatmap)[3 * px];
-			ScoreToRgb(d, good_threshold, bad_threshold, rgb);
+			ScoreToRgb(d, good_threshold, bad_threshold, dst_r[x], dst_g[x], dst_b[x]);
 		}
+
+		dst_r += stride;
+		dst_g += stride;
+		dst_b += stride;
 	}
 }
 
@@ -191,21 +200,13 @@ static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, 
 		const double bad_quality = ButteraugliFuzzyInverse(0.5);
 
 		ImageF *diff_map_ptr = &diff_map;
-		std::vector<uint8_t> rgb;
-		CreateHeatMapImage(*diff_map_ptr, good_quality, bad_quality,
-			rgb1[0].xsize(), rgb2[0].ysize(), &rgb);
 
 		uint8_t *dstp_r = vsapi->getWritePtr(dst, 0);
 		uint8_t *dstp_g = vsapi->getWritePtr(dst, 1);
 		uint8_t *dstp_b = vsapi->getWritePtr(dst, 2);
-		int total_loop = width * height;
-
-		for (int i = 0; i < total_loop; ++i)
-		{
-			dstp_r[i] = rgb.at(3 * i);
-			dstp_g[i] = rgb.at(3 * i + 1);
-			dstp_b[i] = rgb.at(3 * i + 2);
-		}
+		int dst_stride = vsapi->getStride(dst, 0);
+		CreateHeatMapImage(*diff_map_ptr, good_quality, bad_quality,
+			rgb1[0].xsize(), rgb2[0].ysize(), dstp_r, dstp_g, dstp_b, dst_stride);
 
 		VSMap *dstProps = vsapi->getFramePropsRW(dst);
 		vsapi->propSetFloat(dstProps, "_Diff", diff_value, paReplace);
