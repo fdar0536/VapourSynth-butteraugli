@@ -13,7 +13,7 @@
 
 #include "vapoursynth/VapourSynth.h"
 #include "vapoursynth/VSHelper.h"
-#include "butteraugli.h"
+#include "butteraugli/butteraugli/butteraugli.h"
 
 
 using namespace std;
