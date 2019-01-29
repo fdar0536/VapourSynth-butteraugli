@@ -1,4 +1,4 @@
-# vapoursynth-butteraugli
+# VapourSynth-butteraugli
 
 ## Introduction
 
@@ -25,6 +25,13 @@ clipb = core.std.Trim(src2, 0, 0)
 clipb = mvf.ToRGB(clipb, depth=8)
 
 diff = core.Butteraugli.butteraugli(clipa, clipb)
+```
+
+## Compilation
+
+```shell
+meson build
+ninja -C build
 ```
 
 ## Licence
