@@ -110,7 +110,7 @@ void FromSrgbToLinear(const std::vector<Image8>& rgb,
 	for (int c = 0; c < 3; c++)  //first for loop
 	{
 		linear.push_back(ImageF(xsize, ysize));
-		for (int y = 0; y < ysize; ++y) //second for loop
+		for (size_t y = 0; y < ysize; ++y) //second for loop
 		{
 			const uint8_t* const BUTTERAUGLI_RESTRICT row_rgb = rgb[c].Row(y);
 			float* const BUTTERAUGLI_RESTRICT row_linear = linear[c].Row(y);
@@ -230,7 +230,6 @@ static void VS_CC butteraugliFree(void *instanceData, VSCore *core, const VSAPI 
 static void VS_CC butteraugliCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
 	butteraugliData d;
 	butteraugliData *data;
-	int err;
 
 	// Get a clip reference from the input arguments. This must be freed later.
 	d.node1 = vsapi->propGetNode(in, "clipa", 0, 0);
