@@ -27,6 +27,13 @@ clipb = mvf.ToRGB(clipb, depth=8)
 diff = core.Butteraugli.butteraugli(clipa, clipb)
 ```
 
+## Compilation
+
+```shell
+meson build
+ninja -C build
+```
+
 ## Licence
 
 [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
