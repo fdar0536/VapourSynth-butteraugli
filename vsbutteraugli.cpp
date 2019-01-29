@@ -76,7 +76,7 @@ static void ScoreToRgb(double score, double good_threshold,
 	b = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
 }
 
-void CreateHeatMapImage(const ImageF& distmap, double good_threshold,
+void WriteResult(const ImageF& distmap, double good_threshold,
 	double bad_threshold, size_t xsize, size_t ysize,
 	uint8_t *dst_r, uint8_t *dst_g, uint8_t *dst_b, int stride)
 {
@@ -205,7 +205,7 @@ static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, 
 		uint8_t *dstp_g = vsapi->getWritePtr(dst, 1);
 		uint8_t *dstp_b = vsapi->getWritePtr(dst, 2);
 		int dst_stride = vsapi->getStride(dst, 0);
-		CreateHeatMapImage(*diff_map_ptr, good_quality, bad_quality,
+		WriteResult(*diff_map_ptr, good_quality, bad_quality,
 			rgb1[0].xsize(), rgb2[0].ysize(), dstp_r, dstp_g, dstp_b, dst_stride);
 
 		VSMap *dstProps = vsapi->getFramePropsRW(dst);
