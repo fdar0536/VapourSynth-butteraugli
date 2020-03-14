@@ -267,7 +267,7 @@ VapourSynthPluginInit(VSConfigPlugin configFunc,
                         VSPlugin *plugin)
 {
     configFunc("system.Butteraugli.butteraugli",
-                "Butteraugli",
+                "butteraugli",
                 "modified version of Google's butteraugli",
                 VAPOURSYNTH_API_VERSION,
                 1, plugin);
