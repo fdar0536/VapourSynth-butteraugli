@@ -1,6 +1,6 @@
 ﻿/*
  * This is based on Google's butteraugli.
- * 
+ *
  * Reference:
  * libpnmio - https://github.com/nkkav/libpnmio
  */
@@ -15,6 +15,7 @@
 #include "vapoursynth/VSHelper.h"
 #include "butteraugli/butteraugli/butteraugli.h"
 
+#define UNUSED(x) static_cast<void>(x)
 
 using namespace std;
 using namespace butteraugli;
@@ -54,19 +55,19 @@ static void ScoreToRgb(double score, double good_threshold,
     }
 
     static const int kTableSize = sizeof(heatmap) / sizeof(heatmap[0]);
-    
+
     score = std::min<double>(std::max<double>(
         score * (kTableSize - 1), 0.0), kTableSize - 2);
-    
-    int ix = static_cast<int>(score);
-    
-    double mix = score - ix;
+
+    int ix(static_cast<int>(score));
+
+    double mix(score - ix);
     double v;
 
     //r
     v = mix * heatmap[ix + 1][0] + (1 - mix) * heatmap[ix][0];
     r = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
-    
+
     //g
     v = mix * heatmap[ix + 1][1] + (1 - mix) * heatmap[ix][1];
     g = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
@@ -84,8 +85,7 @@ void WriteResult(const ImageF& distmap, double good_threshold,
     {
         for (size_t x = 0; x < xsize; ++x)
         {
-            int px = xsize * y + x;
-            double d = distmap.Row(y)[x];
+            double d(distmap.Row(y)[x]);
             ScoreToRgb(d, good_threshold, bad_threshold, dst_r[x], dst_g[x], dst_b[x]);
         }
 
@@ -100,7 +100,7 @@ const double *NewSrgbToLinearTable()
     double *table = new double[256];
     for (int i = 0; i < 256; ++i)
     {
-        const double srgb = i / 255.0;
+        const double srgb(i / 255.0);
         table[i] =
             255.0 * (srgb <= 0.04045 ? srgb / 12.92
                 : std::pow((srgb + 0.055) / 1.055, 2.4));
@@ -112,20 +112,20 @@ const double *NewSrgbToLinearTable()
 void FromSrgbToLinear(const std::vector<Image8>& rgb,
     std::vector<ImageF>& linear, int background)
 {
-    const size_t xsize = rgb[0].xsize();
-    const size_t ysize = rgb[0].ysize();
-    static const double* const kSrgbToLinearTable = NewSrgbToLinearTable();
+    const size_t xsize(rgb[0].xsize());
+    const size_t ysize(rgb[0].ysize());
+    static const double* const kSrgbToLinearTable(NewSrgbToLinearTable());
 
     for (int c = 0; c < 3; c++)  //first for loop
     {
         linear.push_back(ImageF(xsize, ysize));
         for (size_t y = 0; y < ysize; ++y) //second for loop
         {
-            const uint8_t* const BUTTERAUGLI_RESTRICT row_rgb = rgb[c].Row(y);
-            float* const BUTTERAUGLI_RESTRICT row_linear = linear[c].Row(y);
+            const uint8_t* const BUTTERAUGLI_RESTRICT row_rgb(rgb[c].Row(y));
+            float* const BUTTERAUGLI_RESTRICT row_linear(linear[c].Row(y));
             for (size_t x = 0; x < xsize; x++) //third for loop
             {
-                const int value = row_rgb[x];
+                const int value(row_rgb[x]);
                 row_linear[x] = kSrgbToLinearTable[value];
             } //end third for loop
         } //end second for loop
@@ -136,19 +136,28 @@ typedef struct
 {
     VSNodeRef *node1;
     VSNodeRef *node2;
+    bool heatmap;
     const VSVideoInfo *vi;
 } butteraugliData;
 
 static void VS_CC butteraugliInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
 {
-    butteraugliData *d = (butteraugliData *)*instanceData;
+    UNUSED(in);
+    UNUSED(out);
+    UNUSED(core);
+    butteraugliData *d((butteraugliData *)*instanceData);
     vsapi->setVideoInfo(d->vi, 1, node);
 }
 
-static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, void **instanceData,
-    void **frameData, VSFrameContext *frameCtx, VSCore *core,
-    const VSAPI *vsapi)
+static const VSFrameRef *VS_CC butteraugliGetFrame(int n,
+                                                   int activationReason,
+                                                   void **instanceData,
+                                                   void **frameData,
+                                                   VSFrameContext *frameCtx,
+                                                   VSCore *core,
+                                                   const VSAPI *vsapi)
 {
+    UNUSED(frameData);
     butteraugliData *d = (butteraugliData *)*instanceData;
 
     if (activationReason == arInitial)
@@ -158,24 +167,21 @@ static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, 
     }
     else if (activationReason == arAllFramesReady)
     {
-        const VSFrameRef *src1 = vsapi->getFrameFilter(n, d->node1, frameCtx);
-        const VSFrameRef *src2 = vsapi->getFrameFilter(n, d->node2, frameCtx);
-        const VSFormat *fi = d->vi->format;
+        const VSFrameRef *src1(vsapi->getFrameFilter(n, d->node1, frameCtx));
+        const VSFrameRef *src2(vsapi->getFrameFilter(n, d->node2, frameCtx));
+        const VSFormat *fi(d->vi->format);
         int height = vsapi->getFrameHeight(src1, 0);
         int width = vsapi->getFrameWidth(src1, 0);
-        VSFrameRef *dst = vsapi->newVideoFrame(fi, width, height, src1, core);
 
-        vector<Image8> rgb1 = CreatePlanes<uint8_t>(width, height, 3);
-        vector<Image8> rgb2 = CreatePlanes<uint8_t>(width, height, 3);
+        vector<Image8> rgb1(CreatePlanes<uint8_t>(width, height, 3));
+        vector<Image8> rgb2(CreatePlanes<uint8_t>(width, height, 3));
         ImageF diff_map;
 
-        int plane;
-        for (plane = 0; plane < fi->numPlanes; plane++)
+        for (int plane = 0; plane < fi->numPlanes; ++plane)
         {
-            const uint8_t *srcp1 = vsapi->getReadPtr(src1, plane);
-            const uint8_t *srcp2 = vsapi->getReadPtr(src2, plane);
-            //float *dstp = (float *)vsapi->getWritePtr(dst, plane);
-            int src_stride = vsapi->getStride(src1, plane);
+            const uint8_t *srcp1(vsapi->getReadPtr(src1, plane));
+            const uint8_t *srcp2(vsapi->getReadPtr(src2, plane));
+            int src_stride(vsapi->getStride(src1, plane));
 
             for (int y = 0; y < height; ++y)
             {
@@ -196,19 +202,28 @@ static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, 
             return nullptr;
         }
 
-        const double good_quality = ButteraugliFuzzyInverse(1.5);
-        const double bad_quality = ButteraugliFuzzyInverse(0.5);
+        VSFrameRef *dst(nullptr);
+        if (d->heatmap)
+        {
+            const double good_quality(ButteraugliFuzzyInverse(1.5));
+            const double bad_quality(ButteraugliFuzzyInverse(0.5));
 
-        ImageF *diff_map_ptr = &diff_map;
+            ImageF *diff_map_ptr(&diff_map);
 
-        uint8_t *dstp_r = vsapi->getWritePtr(dst, 0);
-        uint8_t *dstp_g = vsapi->getWritePtr(dst, 1);
-        uint8_t *dstp_b = vsapi->getWritePtr(dst, 2);
-        int dst_stride = vsapi->getStride(dst, 0);
-        WriteResult(*diff_map_ptr, good_quality, bad_quality,
-            rgb1[0].xsize(), rgb2[0].ysize(), dstp_r, dstp_g, dstp_b, dst_stride);
+            dst = vsapi->newVideoFrame(fi, width, height, src1, core);
+            uint8_t *dstp_r(vsapi->getWritePtr(dst, 0));
+            uint8_t *dstp_g(vsapi->getWritePtr(dst, 1));
+            uint8_t *dstp_b(vsapi->getWritePtr(dst, 2));
+            int dst_stride(vsapi->getStride(dst, 0));
+            WriteResult(*diff_map_ptr, good_quality, bad_quality,
+                rgb1[0].xsize(), rgb2[0].ysize(), dstp_r, dstp_g, dstp_b, dst_stride);
+        }
+        else
+        {
+            dst = vsapi->copyFrame(src2, core);
+        }
 
-        VSMap *dstProps = vsapi->getFramePropsRW(dst);
+        VSMap *dstProps(vsapi->getFramePropsRW(dst));
         vsapi->propSetFloat(dstProps, "_Diff", diff_value, paReplace);
 
         vsapi->freeFrame(src1);
@@ -220,7 +235,11 @@ static const VSFrameRef *VS_CC butteraugliGetFrame(int n, int activationReason, 
 } //end butteraugliGetFrame
 
 // Free all allocated data on filter destruction
-static void VS_CC butteraugliFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+static void VS_CC butteraugliFree(void *instanceData,
+                                  VSCore *core,
+                                  const VSAPI *vsapi)
+{
+    UNUSED(core);
     butteraugliData *d = (butteraugliData *)instanceData;
     vsapi->freeNode(d->node1);
     vsapi->freeNode(d->node2);
@@ -228,7 +247,13 @@ static void VS_CC butteraugliFree(void *instanceData, VSCore *core, const VSAPI 
 }
 
 // This function is responsible for validating arguments and creating a new filter
-static void VS_CC butteraugliCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+static void VS_CC butteraugliCreate(const VSMap *in,
+                                    VSMap *out,
+                                    void *userData,
+                                    VSCore *core,
+                                    const VSAPI *vsapi)
+{
+    UNUSED(userData);
     butteraugliData d;
     butteraugliData *data;
 
@@ -253,6 +278,14 @@ static void VS_CC butteraugliCreate(const VSMap *in, VSMap *out, void *userData,
         return;
     }
 
+    int err;
+    d.heatmap = true;
+    int temp_int = vsapi->propGetInt(in, "heatmap", 0, &err);
+    if (!err && (temp_int == 0))
+    {
+        d.heatmap = false;
+    }
+
     data = (butteraugliData*)malloc(sizeof(d));
     *data = d;
     vsapi->createFilter(in, out, "Butteraugli",
@@ -267,12 +300,13 @@ VapourSynthPluginInit(VSConfigPlugin configFunc,
                         VSPlugin *plugin)
 {
     configFunc("system.Butteraugli.butteraugli",
-                "butteraugli",
-                "modified version of Google's butteraugli",
-                VAPOURSYNTH_API_VERSION,
-                1, plugin);
+               "butteraugli",
+               "modified version of Google's butteraugli",
+               VAPOURSYNTH_API_VERSION,
+               1, plugin);
     registerFunc("butteraugli",
-                "clipa:clip;"
-                "clipb:clip;",
-                butteraugliCreate, 0, plugin);
+                 "clipa:clip;"
+                 "clipb:clip;"
+                 "heatmap:int:opt",
+                 butteraugliCreate, 0, plugin);
 }

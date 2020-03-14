@@ -8,11 +8,12 @@ Please refer to [the original document](https://github.com/google/butteraugli/bl
 ## Usage
 
 ```python
-Butteraugli.butteraugli(clip clipa, clip clipb)
+butteraugli.butteraugli(clip clipa, clip clipb, bint heatmap = true)
 ```
 
 - Both clipa and clipb MUST be in RGB24 format.
-- It returns a clip contains differences between two input clips, and stores diffvalue in the frame properties named "_Diff".
+- If heatmap is set to true, it returns a heatmap contains differences between two input clips, else just copy clipb.
+- Either heatmap is true or not, it stores diffvalue in the frame properties named "_Diff".
 
 ## Example
 
@@ -20,9 +21,9 @@ Butteraugli.butteraugli(clip clipa, clip clipb)
 import mvsfunc as mvf
 
 clipa = core.std.Trim(src1, 0, 0)
-clipa = mvf.ToRGB(clipa, depth=8)
+clipa = mvf.ToRGB(clipa, depth = 8)
 clipb = core.std.Trim(src2, 0, 0)
-clipb = mvf.ToRGB(clipb, depth=8)
+clipb = mvf.ToRGB(clipb, depth = 8)
 
 diff = core.Butteraugli.butteraugli(clipa, clipb)
 ```
