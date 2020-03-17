@@ -25,7 +25,7 @@ clipa = mvf.ToRGB(clipa, depth = 8)
 clipb = core.std.Trim(src2, 0, 0)
 clipb = mvf.ToRGB(clipb, depth = 8)
 
-diff = core.Butteraugli.butteraugli(clipa, clipb)
+diff = core.butteraugli.butteraugli(clipa, clipb)
 ```
 
 ## Compilation
